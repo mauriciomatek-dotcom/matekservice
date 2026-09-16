@@ -1,0 +1,9 @@
+{
+  "name": "Matekservice A1.0 — Oficial",
+  "short_name": "Matekservice",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f6f9",
+  "theme_color": "#1f4e79",
+  "description": "Matekservice - atendimento em campo, relatórios, plano de ações, agenda integrada, dashboard e prontuário técnico."
+}

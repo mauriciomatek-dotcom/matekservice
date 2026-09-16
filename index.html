@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f4e79">
+  <title>Matekservice A1.0 — Oficial</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="app-header">
+  <img src="assets/matek_logo.png" alt="Matek" class="logo">
+  <div>
+    <h1>Matekservice</h1>
+    <p>Sistema de Atendimento em Campo <span class="stable-version">A1.0 — Oficial</span></p>
+  </div>
+</header><nav class="main-module-nav">
+  <button type="button" id="navDashboard" class="module-nav-btn dashboard-highlight">PAINEL / DASHBOARD</button>
+  <button type="button" id="navClients" class="module-nav-btn active">CLIENTES</button>
+  <button type="button" id="navActions" class="module-nav-btn">AÇÕES</button>
+  <button type="button" id="navAgenda" class="module-nav-btn agenda-highlight">AGENDA DE SERVIÇOS</button>
+</nav>
+<section class="dashboard-intro-banner">
+  <div>
+    <strong>PAINEL DE GESTÃO</strong>
+    <span>Visão gerencial da Matek por cliente e equipamento.</span>
+  </div>
+  <button type="button" id="openDashboardMain" class="btn primary small">Abrir Dashboard</button>
+</section>
+
+
+<main class="container">
+  <section id="homeScreen" class="screen active">
+    <div class="hero card">
+      <h2>Novo atendimento</h2>
+      <p>Escolha o tipo de documento que será gerado.</p>
+      <div class="type-grid">
+        <button class="type-btn" data-type="preventiva">
+          <strong>Manutenção Preventiva</strong>
+          <span>Checklist técnico completo e ajustável</span>
+        </button>
+        <button class="type-btn" data-type="corretiva">
+          <strong>Manutenção Corretiva</strong>
+          <span>Defeito, diagnóstico, serviço e testes</span>
+        </button>
+        <button class="type-btn" data-type="visita">
+          <strong>Visita Técnica</strong>
+          <span>Levantamento, diagnóstico e recomendações</span>
+        </button>
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="row between center wrap">
+        <div>
+          <h2>Clientes e equipamentos</h2>
+          <p class="muted">Cadastre clientes e seus equipamentos para reutilizar os dados nos próximos atendimentos.</p>
+        </div>
+        <button id="openRegistryBtn" class="btn primary">Gerenciar cadastros</button>
+      </div>
+      <div id="registrySummary" class="registry-summary"></div>
+      <div class="backup-actions">
+        <button id="exportBackupBtn" class="btn secondary small" type="button">Exportar backup completo</button>
+        <label class="btn secondary small file-btn">Restaurar backup
+          <input id="importBackupInput" type="file" accept=".json,application/json" hidden>
+        </label>
+        <span id="backupStatus" class="backup-status">Dados armazenados localmente neste navegador.</span>
+      </div>
+
+    </div>
+
+    <div class="card">
+      <div class="row between center">
+        <h2>Atendimentos salvos</h2>
+        <button id="refreshSaved" class="btn secondary small">Atualizar</button>
+      </div>
+      <div id="savedList" class="saved-list"></div>
+    </div>
+  </section>
+
+  <section id="formScreen" class="screen">
+    <div class="toolbar sticky">
+      <button id="backHome" class="btn secondary">← Início</button>
+      <div class="spacer"></div>
+      <button id="saveBtn" class="btn secondary">Salvar</button>
+      <button id="previewBtn" class="btn primary">Pré-visualizar relatório</button>
+    </div>
+
+    <div class="card">
+      <div class="row between wrap">
+        <div>
+          <span class="eyebrow">Tipo de atendimento</span>
+          <h2 id="formTitle">Atendimento</h2>
+        </div>
+        <span id="statusBadge" class="badge">Rascunho</span>
+      </div>
+    </div>
+
+    <form id="serviceForm">
+
+      <div class="card quick-registry-card">
+        <h3>Cadastro rápido</h3>
+        <div class="grid-2">
+          <label>Cliente cadastrado
+            <select id="clientSelect"><option value="">— Selecionar cliente —</option></select>
+          </label>
+          <label>Equipamento cadastrado
+            <select id="equipmentSelect" disabled><option value="">— Selecionar equipamento —</option></select>
+          </label>
+        </div>
+        <div class="row gap wrap">
+          <button type="button" id="saveClientFromForm" class="btn secondary small">Salvar/atualizar cliente</button>
+          <button type="button" id="saveEquipmentFromForm" class="btn secondary small">Salvar/atualizar equipamento</button>
+          <span id="registryFormStatus" class="muted"></span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>1. Identificação da visita</h3>
+        <div class="grid-3">
+          <label>Cliente<input name="cliente" required></label>
+          <label>Data da execução do serviço<input name="data" type="date"></label>
+          <label>Nº do relatório (automático)<input name="os" readonly placeholder="Gerado ao salvar"></label>
+          <label>Contato<input name="contato"></label>
+          <label>Telefone / e-mail<input name="telefoneEmail"></label>
+          <label>Setor / local<input name="setor"></label>
+          <label>Chegada<input name="chegada" type="time"></label>
+          <label>Saída<input name="saida" type="time"></label>
+          <label>Tempo total<input name="tempoTotal" placeholder="Ex.: 4h30"></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>2. Identificação do equipamento</h3>
+        <div class="grid-3">
+          <label>Equipamento<input name="equipamento"></label>
+          <label>TAG / patrimônio<input name="tag"></label>
+          <label>Fabricante / marca<input name="fabricante"></label>
+          <label>Modelo<input name="modelo"></label>
+          <label>Capacidade nominal<input name="capacidade"></label>
+          <label>Local de instalação<input name="localInstalacao"></label>
+        </div>
+      </div>
+
+      <div id="specificFields"></div>
+
+      <div id="activityContainer" class="card">
+        <div class="row between wrap center">
+          <div>
+            <h3>Atividades / itens de verificação</h3>
+            <p class="muted">Os itens ocultados não aparecem no relatório final. O modelo-padrão continua preservado.</p>
+          </div>
+          <div class="row gap">
+            <button type="button" id="selectAllBtn" class="btn secondary small">Mostrar todos</button>
+            <button type="button" id="addGroupBtn" class="btn secondary small">+ Grupo</button>
+          </div>
+        </div>
+        <div id="groups"></div>
+      </div>
+
+      <div class="card">
+        <h3>Conclusão do atendimento</h3>
+        <div class="grid-2">
+          <label>Condição do equipamento
+            <select name="condicao">
+              <option value="">Selecione</option>
+              <option>Apto para uso</option>
+              <option>Não apto para uso</option>
+              <option>Apto com restrições</option>
+            </select>
+          </label>
+          <label>Responsável técnico
+            <select id="presetTechnician" name="tecnico">
+              <option value="Mauricio Ribeiro">Mauricio Ribeiro — Engenheiro Mecânico</option>
+              <option value="Hallef Caique da Silva">Hallef Caique da Silva — Técnico Mecânico</option>
+            </select>
+          </label>
+        </div>
+        <label>Restrições / observações de segurança
+          <textarea name="restricoes" rows="3"></textarea>
+        </label>
+        <label>Pendências, recomendações e próximas ações
+          <textarea name="recomendacoes" rows="4"></textarea>
+        </label>
+        <label>Observações gerais
+          <textarea name="observacoesGerais" rows="4"></textarea>
+        </label>
+      </div>
+
+      <div class="card">
+        <div class="row between wrap center">
+          <div>
+            <h3>Evidências / fotos</h3>
+            <p class="muted">As fotos ficam vinculadas ao atendimento salvo.</p>
+          </div>
+          <label class="btn secondary file-btn">+ Adicionar fotos
+            <input id="photoInput" type="file" accept="image/*" multiple hidden>
+          </label>
+        </div>
+        <div id="photoGallery" class="photo-grid"></div>
+      </div>
+
+      <div class="card report-recipient-card">
+        <h3>Destinatário do relatório</h3>
+        <p class="muted">Pessoa definida pelo cliente para receber os relatórios técnicos.</p>
+        <div class="grid-3">
+          <label>Responsável pelo recebimento<input name="relatorioResponsavel"></label>
+          <label>Cargo / setor<input name="relatorioCargo"></label>
+          <label>E-mail para envio<input name="relatorioEmail" type="email"></label>
+        </div>
+      </div>
+    </form>
+  </section>
+
+
+  <section id="registryScreen" class="screen">
+    <div class="toolbar sticky">
+      <button id="backRegistryHome" class="btn secondary">← Início</button>
+      <div class="spacer"></div>
+      <button id="newClientBtn" class="btn primary">+ Novo cliente</button>
+    </div>
+
+    <div class="card">
+      <div class="row between center wrap">
+        <div>
+          <span class="eyebrow">Base local do Matekservice</span>
+          <h2>Clientes e equipamentos</h2>
+        </div>
+        <input id="registrySearch" class="registry-search" placeholder="Buscar cliente, TAG, equipamento, fabricante...">
+      </div>
+    </div>
+
+    <div class="registry-layout">
+      <div class="card">
+        <h3>Clientes</h3>
+        <div id="clientList" class="registry-list"></div>
+      </div>
+      <div class="card">
+        <div id="clientEditorEmpty" class="no-data">Selecione um cliente ou clique em “Novo cliente”.</div>
+        <div id="clientEditor" class="hidden">
+          <div class="row between center wrap">
+            <h3 id="clientEditorTitle">Cliente</h3>
+            <button id="deleteClientBtn" class="btn secondary small danger-btn">Excluir cliente</button>
+          </div>
+          <div class="grid-2">
+            <label>Cliente / razão social<input id="regClientName"></label>
+            <label>Contato<input id="regClientContact"></label>
+            <label>Telefone / e-mail<input id="regClientPhone"></label>
+            <label>Setor / local padrão<input id="regClientSector"></label>
+          </div>
+          <h4 class="subsection-title">Recebimento dos relatórios</h4>
+          <div class="grid-3">
+            <label>Responsável<input id="regReportRecipient"></label>
+            <label>Cargo / setor<input id="regReportRole"></label>
+            <label>E-mail<input id="regReportEmail" type="email"></label>
+          </div>
+          <label>Observações do cliente<textarea id="regClientNotes" rows="2"></textarea></label>
+          <div class="row gap wrap">
+            <button id="saveClientBtn" class="btn primary" type="button">Salvar cliente</button>
+            <span id="clientSaveStatus" class="muted"></span>
+          </div>
+
+          <hr class="divider">
+          <div class="row between center wrap">
+            <div>
+              <h3>Equipamentos deste cliente</h3>
+              <p class="muted">Cada equipamento mantém vínculo com os atendimentos realizados.</p>
+            </div>
+            <button id="newEquipmentBtn" class="btn secondary small" type="button">+ Equipamento</button>
+          </div>
+          <div id="equipmentRegistryList" class="registry-list equipment-registry-list"></div>
+
+          <div id="equipmentEditor" class="equipment-editor hidden">
+            <h4 id="equipmentEditorTitle">Equipamento</h4>
+            <div class="grid-3">
+              <label>Equipamento<input id="regEqName"></label>
+              <label>TAG / patrimônio<input id="regEqTag"></label>
+              <label>Fabricante / marca<input id="regEqManufacturer"></label>
+              <label>Modelo<input id="regEqModel"></label>
+              <label>Capacidade nominal<input id="regEqCapacity"></label>
+              <label>Local de instalação<input id="regEqLocation"></label>
+            </div>
+            <div class="row gap wrap">
+              <button id="saveEquipmentBtn" class="btn primary" type="button">Salvar equipamento</button>
+              <button id="deleteEquipmentBtn" class="btn secondary small danger-btn" type="button">Excluir equipamento</button>
+            </div>
+          </div>
+
+          <hr class="divider">
+          <h3>Histórico de atendimentos</h3>
+          <div id="clientHistory" class="history-list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="reportScreen" class="screen">
+    <div class="toolbar sticky no-print">
+      <button id="backForm" class="btn secondary">← Voltar ao preenchimento</button>
+      <div class="spacer"></div>
+      <button id="printBtn" class="btn primary">Imprimir / Salvar PDF</button>
+    </div>
+    <article id="report" class="report"></article>
+  </section>
+
+
+</main>
+
+<footer class="stable-footer">Matekservice A1.0 — Oficial</footer>
+<script src="app.js"></script>
+</body>
+</html>
