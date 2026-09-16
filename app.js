@@ -550,7 +550,7 @@ function showActionManager(focusActionId=''){
   actions.sort((a,b)=>(order[a.status]||9)-(order[b.status]||9)||String(a.dueDate||'9999').localeCompare(String(b.dueDate||'9999')));
   const clients=[...new Set(actions.map(a=>a.client).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   overlay.innerHTML=`<div class="equipment-card-modal action-manager-modal">
-    <div class="equipment-card-top"><div><span class="eyebrow">Matekservice V1.7.4</span><h2>Plano de Ações</h2>
+    <div class="equipment-card-top"><div><span class="eyebrow">Matekservice A1.0 Oficial</span><h2>Plano de Ações</h2>
     <span class="muted">Pendências originadas nos atendimentos técnicos, com prioridade, programação, execução e conclusão.</span></div>
     <button type="button" class="equipment-card-close">×</button></div>
     <div class="action-control-panel">
@@ -612,7 +612,7 @@ function chooseExecutionType(actionId){
   const actions=loadActions(), a=actions.find(x=>x.id===actionId); if(!a)return;
   const overlay=document.createElement('div'); overlay.className='equipment-card-overlay execution-type-overlay';
   overlay.innerHTML=`<div class="equipment-card-modal execution-type-modal">
-    <div class="equipment-card-top"><div><span class="eyebrow">Matekservice V1.7.4</span><h2>Iniciar atendimento da ação</h2>
+    <div class="equipment-card-top"><div><span class="eyebrow">Matekservice A1.0 Oficial</span><h2>Iniciar atendimento da ação</h2>
     <span class="muted">Escolha o tipo de atendimento que será executado. Para reparos e itens NR, Manutenção Corretiva é a opção recomendada.</span></div>
     <button type="button" class="equipment-card-close">×</button></div>
     <div class="execution-origin-box"><b>${escapeHtml(a.client)}</b> • ${escapeHtml(a.equipment)}<br>
@@ -784,7 +784,7 @@ function showAgenda(){
     ({Crítica:0,Alta:1,Média:2,Baixa:3}[a.priority]??9)-({Crítica:0,Alta:1,Média:2,Baixa:3}[b.priority]??9));
   const groups=['Vencidas','Hoje','Próximos 7 dias','Futuras','Sem data'];
   overlay.innerHTML=`<div class="equipment-card-modal agenda-modal">
-    <div class="equipment-card-top"><div><span class="eyebrow">Matekservice V1.7.4</span><h2>Agenda / Programação de Serviços</h2>
+    <div class="equipment-card-top"><div><span class="eyebrow">Matekservice A1.0 Oficial</span><h2>Agenda / Programação de Serviços</h2>
     <span class="muted">O que executar, onde, para quando e com quem.</span></div>
     <button type="button" class="equipment-card-close">×</button></div>
     <div class="agenda-filters">
@@ -857,7 +857,7 @@ function showDashboard(clientId=''){
   const selected=clientId?reg.clients.find(c=>c.id===clientId):null;
   const overlay=document.createElement('div');overlay.className='equipment-card-overlay';
   overlay.innerHTML=`<div class="equipment-card-modal dashboard-modal">
-    <div class="equipment-card-top"><div><span class="eyebrow">Matekservice V1.7.4</span>
+    <div class="equipment-card-top"><div><span class="eyebrow">Matekservice A1.0 Oficial</span>
       <h2>${selected?'Painel Individual do Cliente':'Painel Geral Matek'}</h2>
       <span class="muted">${selected?escapeHtml(selected.name):'Visão consolidada dos clientes, equipamentos, atendimentos e ações.'}</span></div>
       <button type="button" class="equipment-card-close">×</button></div>
@@ -1058,7 +1058,7 @@ function showEquipmentCard(clientId,equipmentId){
   const overlay=document.createElement('div');
   overlay.className='equipment-card-overlay';
   overlay.innerHTML=`<div class="equipment-card-modal equipment-dossier-modal">
-    <div class="equipment-card-top"><div><span class="eyebrow">Matekservice V1.7.4 • Prontuário do Equipamento</span>
+    <div class="equipment-card-top"><div><span class="eyebrow">Matekservice A1.0 Oficial • Prontuário do Equipamento</span>
       <h2>${escapeHtml(eq.tag||eq.name||'Equipamento')}</h2>
       <span class="muted">${escapeHtml(c.name)}${eq.name?' • '+escapeHtml(eq.name):''}</span></div>
       <button type="button" class="equipment-card-close">×</button></div>
@@ -1772,7 +1772,6 @@ async function deletePhotosFromDB(serviceId){
 }
 
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
-renderSaved();
 
 
 
@@ -1789,3 +1788,21 @@ function selectedTech(){
   const sel=document.getElementById('presetTechnician');
   sel?.addEventListener('change',()=>{ if(current){ current.fields=current.fields||{}; current.fields.tecnico=sel.value; current.updatedAt=new Date().toISOString(); }});
 })();
+
+
+// A1.0 Oficial r2 — inicialização robusta após recarregar a página.
+function initializeMatekservice(){
+  try{
+    showHome();
+    const openDash=document.getElementById('openDashboardMain');
+    if(openDash) openDash.onclick=()=>showDashboard();
+    updateBackupStatus?.();
+  }catch(err){
+    console.error('Falha na inicialização do Matekservice:',err);
+  }
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', initializeMatekservice, {once:true});
+}else{
+  initializeMatekservice();
+}
