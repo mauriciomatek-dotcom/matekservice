@@ -549,13 +549,17 @@ function showActionManager(focusActionId=''){
   const order={Pendente:1,Programada:2,'Em execução':3,Concluída:4,Cancelada:5};
   actions.sort((a,b)=>(order[a.status]||9)-(order[b.status]||9)||String(a.dueDate||'9999').localeCompare(String(b.dueDate||'9999')));
   const clients=[...new Set(actions.map(a=>a.client).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const focusAction=actions.find(a=>a.id===focusActionId);
   overlay.innerHTML=`<div class="equipment-card-modal action-manager-modal">
     <div class="equipment-card-top"><div><span class="eyebrow">Matekservice A1.0 Oficial</span><h2>Plano de Ações</h2>
     <span class="muted">Pendências originadas nos atendimentos técnicos, com prioridade, programação, execução e conclusão.</span></div>
     <button type="button" class="equipment-card-close">×</button></div>
     <div class="action-control-panel">
-      <input id="actionSearch" placeholder="Filtrar por cliente, equipamento, ação ou responsável">
-      <select id="actionClient"><option value="">Todos os clientes</option>${clients.map(x=>`<option>${escapeHtml(x)}</option>`).join('')}</select>
+      <div class="action-navigation"><label for="actionClient">1. Cliente</label>
+      <select id="actionClient">${clients.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('')}</select>
+      <label for="actionEquipment">2. Equipamento</label>
+      <select id="actionEquipment"><option value="">Todos os equipamentos</option></select></div>
+      <input id="actionSearch" placeholder="Buscar ação ou responsável">
       <select id="actionPriority"><option value="">Todas as prioridades</option>${['Crítica','Alta','Média','Baixa'].map(x=>`<option>${x}</option>`).join('')}</select>
       <select id="actionStatus"><option value="">Todos os status</option>${['Pendente','Programada','Em execução','Concluída','Cancelada'].map(x=>`<option>${x}</option>`).join('')}</select>
       <select id="actionPeriod"><option value="">Todos os prazos</option><option value="Vencidas">Vencidas</option><option value="Hoje">Hoje</option><option value="Próximos 7 dias">Próximos 7 dias</option><option value="Futuras">Futuras</option><option value="Sem data">Sem data</option></select>
@@ -596,15 +600,29 @@ function showActionManager(focusActionId=''){
       current.groups.forEach(g=>g.items.forEach(i=>i.itemPhotos=itemMap[i.id]||[])); openForm();
     });
   };
+  const equipmentKey=a=>a.equipmentId ? 'id:'+a.equipmentId : 'nome:'+String(a.equipment||'Não informado');
+  const updateEquipments=(preferred='')=>{
+    const c=overlay.querySelector('#actionClient').value;
+    const select=overlay.querySelector('#actionEquipment');
+    const equipmentActions=actions.filter(a=>a.client===c);
+    const equipments=[...new Map(equipmentActions.map(a=>[equipmentKey(a),a.equipment||'Não informado'])).entries()]
+      .sort((a,b)=>a[1].localeCompare(b[1],'pt-BR'));
+    select.innerHTML='<option value="">Todos os equipamentos</option>'+equipments.map(([id,name])=>`<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join('');
+    if(preferred && equipments.some(([id])=>id===preferred))select.value=preferred;
+  };
   const apply=()=>{
     const q=overlay.querySelector('#actionSearch').value.trim().toLowerCase(), c=overlay.querySelector('#actionClient').value;
+    const eq=overlay.querySelector('#actionEquipment').value;
     const p=overlay.querySelector('#actionPriority').value, st=overlay.querySelector('#actionStatus').value, per=overlay.querySelector('#actionPeriod').value;
-    const filtered=actions.filter(a=>(!c||a.client===c)&&(!p||a.priority===p)&&(!st||a.status===st)&&(!per||agendaBucket(a)===per)&&(!q||[a.client,a.equipment,a.responsible,a.description,a.groupTitle,a.os].join(' ').toLowerCase().includes(q)));
+    const filtered=actions.filter(a=>a.client===c&&(!eq||equipmentKey(a)===eq)&&(!p||a.priority===p)&&(!st||a.status===st)&&(!per||agendaBucket(a)===per)&&(!q||[a.client,a.equipment,a.responsible,a.description,a.groupTitle,a.os].join(' ').toLowerCase().includes(q)));
     overlay.querySelector('#actionFilterSummary').innerHTML=`<b>${filtered.length}</b> ação(ões) exibida(s) • <b>${filtered.filter(a=>!['Concluída','Cancelada'].includes(a.status)).length}</b> em aberto • <b>${filtered.filter(a=>a.dueDate&&agendaDayDiff(a.dueDate)<0&&!['Concluída','Cancelada'].includes(a.status)).length}</b> vencida(s)`;
     overlay.querySelector('#actionList').innerHTML=filtered.length?filtered.map(a=>actionCardHtml(a)).join(''):'<div class="no-data">Nenhuma ação encontrada com estes filtros.</div>';
     wire();
   };
-  ['#actionSearch','#actionClient','#actionPriority','#actionStatus','#actionPeriod'].forEach(sel=>{const el=overlay.querySelector(sel); el.oninput=apply; el.onchange=apply;});
+  overlay.querySelector('#actionClient').value=focusAction?.client||clients[0]||'';
+  updateEquipments(focusAction?equipmentKey(focusAction):'');
+  overlay.querySelector('#actionClient').onchange=()=>{updateEquipments();apply();};
+  ['#actionSearch','#actionEquipment','#actionPriority','#actionStatus','#actionPeriod'].forEach(sel=>{const el=overlay.querySelector(sel); el.oninput=apply; el.onchange=apply;});
   apply();
   if(focusActionId)setTimeout(()=>{const el=overlay.querySelector(`.action-card[data-id="${focusActionId}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100);
 }

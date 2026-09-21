@@ -1,4 +1,4 @@
-const CACHE='matekservice-a1.0-oficial-mobile-nav-r2';
+const CACHE='matekservice-a1.0-plano-cliente-equip-r3';
 const ASSETS=[
   './',
   './index.html',

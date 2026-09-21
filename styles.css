@@ -650,3 +650,9 @@ input:focus,textarea:focus,select:focus{outline:2px solid rgba(31,78,121,.18);bo
   .report-table{font-size:.76rem}
   .report-photos{grid-template-columns:1fr}
 }
+
+/* Plano de Ações: navegação por cliente e equipamento */
+.action-navigation{display:flex;align-items:center;gap:8px;flex-wrap:wrap;grid-column:1/-1;padding:10px;border:1px solid #d9e5f2;border-radius:10px;background:#f4f8ff}
+.action-navigation label{font-weight:700;color:#173d68;white-space:nowrap}
+.action-navigation select{min-width:170px;max-width:100%;flex:1 1 180px}
+@media(max-width:650px){.action-navigation{display:grid;grid-template-columns:1fr}.action-navigation select{width:100%;min-width:0}}
