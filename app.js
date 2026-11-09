@@ -900,7 +900,60 @@ function showDashboard(clientId=''){
   overlay.querySelectorAll('.dash-open-client').forEach(b=>b.onclick=()=>{overlay.remove();showDashboard(b.dataset.client);});
   overlay.querySelectorAll('.dash-open-equipment').forEach(b=>b.onclick=()=>{overlay.remove();showEquipmentCard(b.dataset.client,b.dataset.equipment);});
   overlay.querySelectorAll('.dash-actions').forEach(b=>b.onclick=()=>{overlay.remove();showActionManager();});
+  const pdfButton=overlay.querySelector('.dash-client-pdf');
+  if(pdfButton)pdfButton.onclick=()=>printClientDashboard(clientId);
   overlay.querySelectorAll('.dash-agenda').forEach(b=>b.onclick=()=>{overlay.remove();showAgenda();});
+}
+function printClientDashboard(clientId){
+  const data=dashboardClientData(clientId);
+  if(!data.client)return;
+  const stats=dashboardStats(clientId);
+  const esc=escapeHtml;
+  const date=value=>value?esc(formatDate(value)):'—';
+  const rows=dashboardEquipmentData(data).map(({eq,open,eqOverdue,last,next})=>{
+    const condition=eqOverdue.length?'Vencida':next?'Programada':open.length?'Em aberto':'Sem pendências';
+    const color=eqOverdue.length?'late':next?'planned':open.length?'open':'clear';
+    const label=[eq.tag,eq.name].filter((value,index,all)=>value&&all.indexOf(value)===index).join(' — ');
+    const service=last?TYPE_LABELS[last.type]||last.type||'Atendimento':'';
+    return `<tr><td>${esc(label||'Equipamento')}</td><td>${date(last?.fields?.data)}${service?`<br>${esc(service)}`:''}</td>
+      <td class="${color}">${condition} (${open.length})</td><td>${date(next?.dueDate)}</td></tr>`;
+  }).join('');
+  const actions=[...stats.active].sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')).map(action=>{
+    const overdue=stats.overdue.includes(action);
+    return `<tr><td>${esc(action.equipment||'Sem equipamento informado')}</td><td>${esc(action.description||'Ação pendente')}</td>
+      <td class="${overdue?'late':action.dueDate?'planned':'open'}">${overdue?'Vencida':action.dueDate?'Programada':'Em aberto'}</td>
+      <td>${esc(action.priority||'—')}</td><td>${date(action.dueDate)}</td><td>${esc(action.responsible||'—')}</td></tr>`;
+  }).join('');
+  const preview=window.open('','_blank');
+  if(!preview){alert('Permita pop-ups do Matekservice para abrir a prévia do PDF.');return;}
+  preview.opener=null;
+  preview.document.open();
+  preview.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Matekservice - ${esc(data.client.name)}</title><style>
+      @page{size:A4;margin:14mm}
+      body{font:14px/1.4 Arial,sans-serif;color:#172638;max-width:1000px;margin:24px auto;padding:0 16px}
+      header{border-bottom:3px solid #1d486f;padding-bottom:10px}
+      h1,h2{color:#1d486f;margin-bottom:6px}h1{margin-top:6px}
+      table{width:100%;border-collapse:collapse;table-layout:auto;margin-bottom:16px}
+      th,td{border:1px solid #cbd5e1;padding:7px;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+      th{background:#eef4fa}thead{display:table-header-group}tr{break-inside:avoid}
+      .late{color:#a21c24}.planned{color:#17568b}.open{color:#845300}.clear{color:#22652c}
+      button{padding:9px 14px;margin-bottom:12px}p{margin:6px 0}
+      @media print{body{margin:0;padding:0;font-size:10pt}button{display:none}h2{break-after:avoid}}
+    </style></head><body>
+    <button type="button" id="saveClientPdf">Imprimir / Salvar como PDF</button>
+    <header><strong>MATEK · MATEKSERVICE</strong><h1>${esc(data.client.name)}</h1>
+      <p>Mapa de equipamentos e pendências · Emitido em ${new Date().toLocaleDateString('pt-BR')}</p></header>
+    <p><strong>${stats.equipments}</strong> equipamentos · <strong>${stats.services.length}</strong> atendimentos ·
+      <strong>${stats.active.length}</strong> pendências abertas, sendo <strong>${stats.overdue.length}</strong> vencidas</p>
+    <h2>Mapa de equipamentos</h2>
+    ${rows?`<table><thead><tr><th>Equipamento</th><th>Último atendimento</th><th>Situação</th><th>Próxima programação</th></tr></thead><tbody>${rows}</tbody></table>`:'<p>Nenhum equipamento cadastrado.</p>'}
+    <h2>Pendências por equipamento</h2>
+    ${actions?`<table><thead><tr><th>Equipamento</th><th>Ação</th><th>Situação</th><th>Prioridade</th><th>Prazo</th><th>Responsável</th></tr></thead><tbody>${actions}</tbody></table>`:'<p>Nenhuma pendência em aberto.</p>'}
+    </body></html>`);
+  preview.document.close();
+  preview.document.querySelector('#saveClientPdf').onclick=()=>preview.print();
 }
 function dashboardGeneralHtml(reg,stats){
   const rows=reg.clients.map(c=>{
@@ -925,19 +978,24 @@ function dashboardUpcomingHtml(actions){
   if(!list.length)return '<div class="no-data">Nenhuma ação em aberto.</div>';
   return list.map(a=>`<div class="dashboard-upcoming-row ${a.dueDate&&agendaDayDiff(a.dueDate)<0?'danger':''}"><div><b>${a.dueDate?formatDate(a.dueDate):'Sem data'}</b><small>${escapeHtml(a.priority||'Média')}</small></div><div><strong>${escapeHtml(a.client)}</strong><small>${escapeHtml(a.equipment)}</small></div><div><strong>${escapeHtml(a.description||'Ação pendente')}</strong><small>${escapeHtml(a.responsible?'Responsável: '+a.responsible:a.status||'Pendente')}</small></div></div>`).join('');
 }
+function dashboardEquipmentData(d){
+  return d.equipments.map(eq=>{
+    const eqServices=d.services.filter(s=>(s.registryEquipmentId||'')===eq.id || (eq.tag&&normalize(s.fields?.tag||'')===normalize(eq.tag)));
+    const eqActions=d.actions.filter(a=>(a.equipmentId||'')===eq.id || (eq.tag&&String(a.equipment||'').toLowerCase().includes(String(eq.tag).toLowerCase())));
+    const open=eqActions.filter(a=>!['Concluída','Cancelada'].includes(a.status));
+    const eqOverdue=open.filter(a=>a.dueDate&&agendaDayDiff(a.dueDate)<0);
+    const last=[...eqServices].sort((a,b)=>String(b.fields?.data||'').localeCompare(String(a.fields?.data||'')))[0];
+    const next=open.filter(a=>a.dueDate&&agendaDayDiff(a.dueDate)>=0).sort((a,b)=>a.dueDate.localeCompare(b.dueDate))[0];
+    return {eq,open,eqOverdue,last,next};
+  });
+}
 function dashboardClientHtml(c,stats){
   const d=dashboardClientData(c.id);
   const active=d.actions.filter(a=>!['Concluída','Cancelada'].includes(a.status));
   const overdue=active.filter(a=>a.dueDate&&agendaDayDiff(a.dueDate)<0);
   const scheduled=active.filter(a=>a.dueDate).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
   const recent=[...d.services].sort((a,b)=>String(b.fields?.data||'').localeCompare(String(a.fields?.data||''))).slice(0,5);
-  const eqRows=d.equipments.map(eq=>{
-    const eqServices=d.services.filter(s=>(s.registryEquipmentId||'')===eq.id || (eq.tag&&normalize(s.fields?.tag||'')===normalize(eq.tag)));
-    const eqActions=d.actions.filter(a=>(a.equipmentId||'')===eq.id || (eq.tag&&String(a.equipment||'').toLowerCase().includes(String(eq.tag).toLowerCase())));
-    const open=eqActions.filter(a=>!['Concluída','Cancelada'].includes(a.status));
-    const eqOverdue=open.filter(a=>a.dueDate&&agendaDayDiff(a.dueDate)<0);
-    const last=[...eqServices].sort((a,b)=>String(b.fields?.data||'').localeCompare(String(a.fields?.data||'')))[0];
-    const next=open.filter(a=>a.dueDate).sort((a,b)=>a.dueDate.localeCompare(b.dueDate))[0];
+  const eqRows=dashboardEquipmentData(d).map(({eq,open,eqOverdue,last,next})=>{
     let condition='Sem pendências';
     if(eqOverdue.length)condition='Atenção — ação vencida';
     else if(open.length)condition='Com pendência';
@@ -953,7 +1011,7 @@ function dashboardClientHtml(c,stats){
   return `<div class="client-panel-header">
       <div><span class="eyebrow">Painel Individual do Cliente</span><h3>${escapeHtml(c.name)}</h3>
       <span class="muted">Acompanhamento dos equipamentos, atendimentos, pendências e programação deste cliente.</span></div>
-      <div class="row gap"><button class="btn secondary small dash-actions">Ações</button><button class="btn secondary small dash-agenda">Agenda</button></div>
+      <div class="row gap"><button type="button" class="btn small dash-client-pdf">Gerar PDF do cliente</button><button class="btn secondary small dash-actions">Ações</button><button class="btn secondary small dash-agenda">Agenda</button></div>
     </div>
     <div class="client-health">
       <div><strong>${d.equipments.length}</strong><span>Equipamentos</span></div>

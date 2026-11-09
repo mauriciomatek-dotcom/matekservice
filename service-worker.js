@@ -1,4 +1,4 @@
-const CACHE='matekservice-a1.0-plano-cliente-equip-r3';
+const CACHE='matekservice-a1.0-pdf-cliente-r4';
 const ASSETS=[
   './',
   './index.html',
